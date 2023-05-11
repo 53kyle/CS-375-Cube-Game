@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cube Game</title>
+    <style>
+        body {
+            margin: 0
+        }
+        .overlay-text {
+            position: absolute;
+            z-index: 100;
+            background-color: 0x87CEEB;
+            margin: 15;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: bold;
+            font-size: x-large;
+            display: flex;
+        }
+        .secondary-text {
+            position: absolute;
+            z-index: 100;
+            background-color: 0x87CEEB;
+            margin-top: 50;
+            margin-left: 15;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: bold;
+            font-size: xx-large;
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <script src="game.js" type="module"></script>
+    <div id="score-text" class="overlay-text"> 
+        Score
+    </div>
+    <div id="message-text" class="secondary-text"> 
+        
+    </div>
+</body>
+</html>
