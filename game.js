@@ -2,12 +2,12 @@ import * as THREE from 'three';
 
 // game state variables
 let score = 0;
-let speed = 0.25;
+let speed = 0.5;
 let movingLeft = false;
 let movingRight = false;
 let gamePaused = false;
 let gameOver = false;
-let debugMode = false;
+let debugMode = true;
 
 // arrays for managing collision
 const boxArray = new Array();
@@ -84,18 +84,42 @@ const messageText = document.getElementById('message-text');
 
 // general three JS setup
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog( 0x87CEEB, 95, 120 );
+scene.fog = new THREE.Fog( 0x87CEEB, 130, 150 );
 scene.background = new THREE.Color( 0x87CEEB );
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 camera.position.z = 30;
-camera.position.y = 1.5;
+camera.position.y = 3;
 
 // used to generate a random position and color for each cube
 function getRandomInt(max) {
     return Math.floor(Math.random() * max);
+}
+
+function getCubePosition() {
+    // get random position for cube to spawn at
+    var canSpawnHere = true;
+    let xDomain = 280 - (speed*50);
+    let x = getRandomInt(xDomain) - xDomain/2 + camera.position.x;
+    let y = 0.0;
+    let z = camera.position.z - 150 + getRandomInt(10);
+    let position = new THREE.Vector3;
+    for (const box in boxArray) {
+        // if cube with position will penetrate the bounds of another, we need to throw away that position
+        if ((x >= boxArray[box].position.x - 1 && x <= boxArray[box].position.x + 1) && (z >= boxArray[box].position.z - 1 && z <= boxArray[box].position.z + 1)) {
+            canSpawnHere = false;
+        }
+    }
+    if (!canSpawnHere) {
+        // get new random position
+        return getCubePosition();
+    }
+    position.x = x;
+    position.y = y;
+    position.z = z;
+    return position;
 }
 
 function renderCube() {
@@ -109,12 +133,14 @@ function renderCube() {
         randomColor = 0x000000;
         randomColor += randomColorSelector;
 
-        const boxMaterial = new THREE.MeshBasicMaterial({color: randomColor});
+        const boxMaterial = new THREE.MeshLambertMaterial({color: randomColor});
         const box = new THREE.Mesh(boxGeometry, boxMaterial);
-        box.position.z = camera.position.z - 120 + getRandomInt(10);
-        let xDomain = 300 - (speed*100);
-        box.position.x = getRandomInt(xDomain) - xDomain/2 + camera.position.x;
+
+        let position = getCubePosition();
+        box.position.x = position.x;
+        box.position.z = position.z;
         box.geometry.computeBoundingBox();
+
         scene.add(box);
         boxArray.push(box);
         collisionArray.push(boxCollision);
@@ -127,15 +153,14 @@ function renderCube() {
                 box.removeFromParent();
                 boxArray.splice(0, 1);
                 collisionArray.splice(0, 1);
-                console.log(boxArray.length);
             }
-        }, 1000*(1/speed));
+        }, 1500*(1/speed));
 
 }
 
 // create the floor
-const floorGeometry = new THREE.PlaneGeometry( 1000, 1000 );
-const floorMaterial = new THREE.MeshBasicMaterial({color:0x424242});
+const floorGeometry = new THREE.PlaneGeometry( 500, 300 );
+const floorMaterial = new THREE.MeshLambertMaterial({color:0x303030});
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
 floor.rotation.x = -Math.PI/2;
 floor.position.y = -0.75
@@ -145,7 +170,7 @@ scene.add(floor);
 const playerGeometry = new THREE.BufferGeometry();
 const playerVertices = new Float32Array( [
 	 -0.75, -1.0,  0.75, // 0
-	 0.0, 0.15,  1.0, // 1
+	 0.0, -0.5,  1.0, // 1
 	 0.75,  -1.0,  0.75, // 2
 	 0.0,  -1.0,  1.0, // 3
 ] );
@@ -167,39 +192,46 @@ player.geometry.computeBoundingBox();
 
 scene.add(player)
 
+// add some lighting to the scene
+var light = new THREE.PointLight(0xFFFFFF);
+light.position.set(0, 50, 0);
+scene.add(light);
+
 function animate() {
     if (!gamePaused) {
         // move forward constantly
         camera.position.z -= speed;
 
         // rotate camera & player model when moving left or right
-        if (camera.rotation.z <= 0.2 && movingRight && !movingLeft && !gameOver) {
-            camera.rotation.z += 0.015;
+        if (camera.rotation.z <= 0.15 && movingRight && !movingLeft && !gameOver) {
+            camera.rotation.z += 0.01;
         }
-        else if (camera.rotation.z >= -0.2 && movingLeft && !movingRight && !gameOver) {
-            camera.rotation.z -= 0.015;
+        else if (camera.rotation.z >= -0.15 && movingLeft && !movingRight && !gameOver) {
+            camera.rotation.z -= 0.01;
         }
         else if (camera.rotation.z.toFixed(3) < 0.000 && (!(movingLeft && !movingRight) || gameOver)) {
-            camera.rotation.z += 0.015;
+            camera.rotation.z += 0.01;
         }
         else if (camera.rotation.z.toFixed(3) > 0.000 && (!(movingRight && !movingLeft) || gameOver)) {
-            camera.rotation.z -= 0.015;
+            camera.rotation.z -= 0.01;
         }
     
         // move left or right
         if (movingRight && !movingLeft && !gameOver) {
-            camera.position.x += 0.1 + speed/3;
+            camera.position.x += 0.1 + speed/4;
         }
         else if (movingLeft && !movingRight && !gameOver) {
-            camera.position.x -= 0.1 + speed/3;
+            camera.position.x -= 0.1 + speed/4;
         }
     
-        // tie the player model & floor to the camera's movement and rotation
-        player.position.z = camera.position.z - 5;
+        // tie the player model, floor and light to the camera's movement and rotation
+        player.position.z = camera.position.z - 6;
         player.position.x = camera.position.x;
         player.rotation.y = camera.rotation.z;
         floor.position.x = camera.position.x;
         floor.position.z = camera.position.z;
+        light.position.x = camera.position.x;
+        light.position.z = camera.position.z + 20;
 
         if (score % (6 - Math.floor(speed*10)) == 0) {
             renderCube();
