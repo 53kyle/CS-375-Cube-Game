@@ -2,11 +2,12 @@ import * as THREE from 'three';
 
 // game state variables
 let score = 0;
-let speed = 0.15;
+let speed = 0.25;
 let movingLeft = false;
 let movingRight = false;
 let gamePaused = false;
 let gameOver = false;
+let debugMode = false;
 
 // arrays for managing collision
 const boxArray = new Array();
@@ -23,11 +24,47 @@ document.addEventListener('keydown', function (event) {
     if (event.key == "Escape" || event.key == "p" ) {
         if (gamePaused) {
             gamePaused = false;
-            messageText.innerHTML = "";
+            if (debugMode) {
+                messageText.innerHTML = "DEBUG MODE ON";
+            }
+            else {
+                messageText.innerHTML = "";
+            }
         }
         else if (!gameOver) {
             gamePaused = true;
-            messageText.innerHTML = "Game Paused (Press 'esc' to Unpause)";
+            if (debugMode) {
+                messageText.innerHTML = "DEBUG MODE ON\nGame Paused (Press 'esc' to Unpause)";
+            }
+            else {
+                messageText.innerHTML = "Game Paused (Press 'esc' to Unpause)";
+            }
+        }
+    }
+    if (event.key == "`" ) {
+        if (debugMode) {
+            debugMode = false;
+            if (gamePaused) {
+                messageText.innerHTML = "Game Paused (Press 'esc' to Unpause)";
+            }
+            else if (gameOver) {
+                messageText.innerHTML = "Game Over (Reload Page to Play Again)";
+            }
+            else {
+                messageText.innerHTML = ""
+            }
+        }
+        else {
+            debugMode = true;
+            if (gamePaused) {
+                messageText.innerHTML = "DEBUG MODE ON\nGame Paused (Press 'esc' to Unpause)";
+            }
+            else if (gameOver) {
+                messageText.innerHTML = "DEBUG MODE ON\nGame Over (Reload Page to Play Again)";
+            }
+            else {
+                messageText.innerHTML = "DEBUG MODE ON";
+            }
         }
     }
 }, false);
@@ -47,13 +84,14 @@ const messageText = document.getElementById('message-text');
 
 // general three JS setup
 const scene = new THREE.Scene();
+scene.fog = new THREE.Fog( 0x87CEEB, 95, 120 );
 scene.background = new THREE.Color( 0x87CEEB );
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 camera.position.z = 30;
-camera.position.y = 1;
+camera.position.y = 1.5;
 
 // used to generate a random position and color for each cube
 function getRandomInt(max) {
@@ -62,29 +100,22 @@ function getRandomInt(max) {
 
 function renderCube() {
     // render more cubes the faster the player's moving
-    for (let i = 0.0; i < speed; i += 0.1) {
+
         const boxGeometry = new THREE.BoxGeometry(1.5,1.5,1.5);
         const boxCollision = new THREE.Box3();
 
-        let randomColorSelector = getRandomInt(3);
-        let randomColor = 0x000000;
-        if (randomColorSelector == 0) {
-            randomColor = 0xFF0000;
-        }
-        else if (randomColorSelector == 1) {
-            randomColor = 0x00FF00;
-        }
-        else {
-            randomColor = 0x0000FF;
-        }
+        // get random color for the cube
+        let randomColorSelector = getRandomInt(16581375);
+        randomColor = 0x000000;
+        randomColor += randomColorSelector;
 
         const boxMaterial = new THREE.MeshBasicMaterial({color: randomColor});
         const box = new THREE.Mesh(boxGeometry, boxMaterial);
-        box.position.z = camera.position.z - 80 + getRandomInt(10);
-        box.position.x = getRandomInt(1000) - 500 + camera.position.x;
+        box.position.z = camera.position.z - 120 + getRandomInt(10);
+        let xDomain = 300 - (speed*100);
+        box.position.x = getRandomInt(xDomain) - xDomain/2 + camera.position.x;
         box.geometry.computeBoundingBox();
         scene.add(box);
-
         boxArray.push(box);
         collisionArray.push(boxCollision);
 
@@ -94,9 +125,12 @@ function renderCube() {
         window.setTimeout( function() {
             if (!gamePaused && !gameOver) {
                 box.removeFromParent();
+                boxArray.splice(0, 1);
+                collisionArray.splice(0, 1);
+                console.log(boxArray.length);
             }
-        }, 700/speed);
-    }
+        }, 1000*(1/speed));
+
 }
 
 // create the floor
@@ -111,7 +145,7 @@ scene.add(floor);
 const playerGeometry = new THREE.BufferGeometry();
 const playerVertices = new Float32Array( [
 	 -0.75, -1.0,  0.75, // 0
-	 0.0, 0.25,  1.0, // 1
+	 0.0, 0.15,  1.0, // 1
 	 0.75,  -1.0,  0.75, // 2
 	 0.0,  -1.0,  1.0, // 3
 ] );
@@ -123,7 +157,7 @@ const playerIndices = [
 
 playerGeometry.setIndex( playerIndices );
 playerGeometry.setAttribute( 'position', new THREE.BufferAttribute( playerVertices, 3 ) );
-const playerMaterial = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+const playerMaterial = new THREE.MeshBasicMaterial( { color: 0xFFFFFF } );
 const player = new THREE.Mesh( playerGeometry, playerMaterial );
 player.rotation.x = -Math.PI/2;
 player.position.y = -1.0;
@@ -139,10 +173,10 @@ function animate() {
         camera.position.z -= speed;
 
         // rotate camera & player model when moving left or right
-        if (camera.rotation.z <= 0.3 && movingRight && !movingLeft && !gameOver) {
+        if (camera.rotation.z <= 0.2 && movingRight && !movingLeft && !gameOver) {
             camera.rotation.z += 0.015;
         }
-        else if (camera.rotation.z >= -0.3 && movingLeft && !movingRight && !gameOver) {
+        else if (camera.rotation.z >= -0.2 && movingLeft && !movingRight && !gameOver) {
             camera.rotation.z -= 0.015;
         }
         else if (camera.rotation.z.toFixed(3) < 0.000 && (!(movingLeft && !movingRight) || gameOver)) {
@@ -154,25 +188,28 @@ function animate() {
     
         // move left or right
         if (movingRight && !movingLeft && !gameOver) {
-            camera.position.x += 0.15;
+            camera.position.x += 0.1 + speed/3;
         }
         else if (movingLeft && !movingRight && !gameOver) {
-            camera.position.x -= 0.15;
+            camera.position.x -= 0.1 + speed/3;
         }
     
         // tie the player model & floor to the camera's movement and rotation
         player.position.z = camera.position.z - 5;
         player.position.x = camera.position.x;
         player.rotation.y = camera.rotation.z;
+        floor.position.x = camera.position.x;
         floor.position.z = camera.position.z;
 
-        renderCube();
+        if (score % (6 - Math.floor(speed*10)) == 0) {
+            renderCube();
+        }
 
         renderer.render(scene, camera);
 
         // gradually speed up as game progesses
         if (speed <= 0.5 && !gameOver) {
-            speed += 0.00001;
+            speed += 0.00003;
         }
         else if (gameOver && speed > 0) {
             // smoothly slow down when game is over
@@ -187,10 +224,15 @@ function animate() {
         
         for (const x in collisionArray) {
             collisionArray[x].copy( boxArray[x].geometry.boundingBox ).applyMatrix4( boxArray[x].matrixWorld );
-            if (playerCollision.intersectsBox(collisionArray[x]) && score > 200) {
+            if (playerCollision.intersectsBox(collisionArray[x]) && score > 200 && !debugMode) {
                 gameOver = true;
                 player.removeFromParent();
-                messageText.innerHTML = "Game Over (Reload Page to Play Again)";
+                if (debugMode) {
+                    messageText.innerHTML = "DEBUG MODE ON\nGame Over (Reload Page to Play Again)";
+                }
+                else {
+                    messageText.innerHTML = "Game Over (Reload Page to Play Again)";
+                }
             }
         }
 
