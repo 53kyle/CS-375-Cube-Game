@@ -7,7 +7,7 @@ let movingLeft = false;
 let movingRight = false;
 let gamePaused = false;
 let gameOver = false;
-let debugMode = true;
+let debugMode = false;
 
 // arrays for managing collision
 const boxArray = new Array();
