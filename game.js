@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // game state variables
 let score = 0;
-let speed = 0.5;
+let speed = 0.25;
 let movingLeft = false;
 let movingRight = false;
 let gamePaused = false;
@@ -169,9 +169,9 @@ scene.add(floor);
 // create the player model
 const playerGeometry = new THREE.BufferGeometry();
 const playerVertices = new Float32Array( [
-	 -0.75, -1.0,  0.75, // 0
+	 -0.65, -1.0,  0.75, // 0
 	 0.0, -0.5,  1.0, // 1
-	 0.75,  -1.0,  0.75, // 2
+	 0.65,  -1.0,  0.75, // 2
 	 0.0,  -1.0,  1.0, // 3
 ] );
 
