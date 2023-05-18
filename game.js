@@ -3,11 +3,18 @@ import * as THREE from 'three';
 // game state variables
 let score = 0;
 let speed = 0.25;
+let lightYOffset = 0;
+let lightZOffset = 0;
+let colorLerpAlpha = 0.0;
 let movingLeft = false;
 let movingRight = false;
 let gamePaused = false;
 let gameOver = false;
 let debugMode = false;
+
+// colors
+let dayColor = new THREE.Color(0x87CEEB)
+let sunsetColor = new THREE.Color(0xFF9E44)
 
 // arrays for managing collision
 const boxArray = new Array();
@@ -84,11 +91,13 @@ const messageText = document.getElementById('message-text');
 
 // general three JS setup
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog( 0x87CEEB, 130, 150 );
+scene.fog = new THREE.Fog( 0x000000, 130, 150 );
 scene.background = new THREE.Color( 0x87CEEB );
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 camera.position.z = 30;
 camera.position.y = 3;
@@ -141,6 +150,7 @@ function renderCube() {
         box.position.z = position.z;
         box.geometry.computeBoundingBox();
 
+        box.castShadow = true;
         scene.add(box);
         boxArray.push(box);
         collisionArray.push(boxCollision);
@@ -164,6 +174,7 @@ const floorMaterial = new THREE.MeshLambertMaterial({color:0x303030});
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
 floor.rotation.x = -Math.PI/2;
 floor.position.y = -0.75
+floor.receiveShadow = true;
 scene.add(floor);
 
 // create the player model
@@ -182,19 +193,25 @@ const playerIndices = [
 
 playerGeometry.setIndex( playerIndices );
 playerGeometry.setAttribute( 'position', new THREE.BufferAttribute( playerVertices, 3 ) );
-const playerMaterial = new THREE.MeshBasicMaterial( { color: 0xFFFFFF } );
+const playerMaterial = new THREE.MeshPhongMaterial( { color: 0xFFFFFF } );
 const player = new THREE.Mesh( playerGeometry, playerMaterial );
 player.rotation.x = -Math.PI/2;
 player.position.y = -1.0;
 
 const playerCollision = new THREE.Box3();
 player.geometry.computeBoundingBox();
+player.castShadow = true;
 
 scene.add(player)
 
 // add some lighting to the scene
 var light = new THREE.PointLight(0xFFFFFF);
-light.position.set(0, 50, 0);
+light.position.set(0, 150, 0);
+light.castShadow = true;
+light.shadow.mapSize.width = 512; // default
+light.shadow.mapSize.height = 512; // default
+light.shadow.camera.near = 0.5; // default
+light.shadow.camera.far = 500; 
 scene.add(light);
 
 function animate() {
@@ -230,8 +247,9 @@ function animate() {
         player.rotation.y = camera.rotation.z;
         floor.position.x = camera.position.x;
         floor.position.z = camera.position.z;
-        light.position.x = camera.position.x;
-        light.position.z = camera.position.z + 20;
+        light.position.x = camera.position.x - 50;
+        light.position.y = 250 - lightYOffset;
+        light.position.z = camera.position.z - lightZOffset;
 
         if (score % (6 - Math.floor(speed*10)) == 0) {
             renderCube();
@@ -271,6 +289,23 @@ function animate() {
         // increase score by one for every frame
         if (!gameOver) {
             score += 1;
+        }
+
+        // day cycle (animate color of sky and fog)
+        if (lightYOffset < 225 && !gameOver) {
+            lightYOffset += 0.01;
+            
+            colorLerpAlpha += 0.00004444444444;
+
+            scene.background.copy(dayColor);
+            scene.background.lerp(sunsetColor, colorLerpAlpha);
+
+
+            scene.fog.color.copy(dayColor);
+            scene.fog.color.lerp(sunsetColor, colorLerpAlpha);
+        }
+        if (lightZOffset < 150 && !gameOver) {
+            lightZOffset += 0.015;
         }
     
         scoreText.innerHTML = "Score: " + score;
