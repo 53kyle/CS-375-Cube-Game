@@ -300,7 +300,6 @@ function animate() {
             scene.background.copy(dayColor);
             scene.background.lerp(sunsetColor, colorLerpAlpha);
 
-
             scene.fog.color.copy(dayColor);
             scene.fog.color.lerp(sunsetColor, colorLerpAlpha);
         }
