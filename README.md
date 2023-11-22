@@ -1,4 +1,4 @@
-# Final-Project
+# CS-375-Cube-Game
 
 To run, open in VSCode and run 'parcel cubegame.html' in the terminal.
 
